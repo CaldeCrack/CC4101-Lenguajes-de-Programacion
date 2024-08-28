@@ -92,11 +92,12 @@
 ;; from-to :: Integer Integer -> ListOf Integer
 ;; Construye una lista de enteros comprendidos entre dos enteros dados
 (define (from-to start end)
-	(if (equal? start end)
-		(list end)
+	(if (> start end)
+		'()
 		(append (list start) (apply append (list (from-to (+ start 1) end))))
 	)
 )
+(test (from-to 3 0) '())
 (test (from-to 0 5) '(0 1 2 3 4 5))
 
 ;; mysterious-list :: Integer -> ListOf Float
