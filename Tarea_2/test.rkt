@@ -3,16 +3,20 @@
 
 (print-only-errors #t)
 
+;;----- ;;
+;;  P1  ;;
+;;----- ;;
+
 ;; P1.b
 (test (parse-prop 'true) (tt))
 (test (parse-prop 'false) (ff))
 
 (test (parse-prop '(not true)) (p-not (tt)))
-(test/exn (parse-prop '(not true false)) "parse-prop: not expects only one operand")
+(test/exn (parse-prop '(not true false)) "parse-prop: 'not' expects only one operand")
 (test (parse-prop '(and true false true)) (p-and (list (tt) (ff) (tt))))
-(test/exn (parse-prop '(and true)) "parse-prop: and expects at least two operands")
+(test/exn (parse-prop '(and true)) "parse-prop: 'and' expects at least two operands")
 (test (parse-prop '(or true false)) (p-or (list (tt) (ff))))
-(test/exn (parse-prop '(or)) "parse-prop: or expects at least two operands")
+(test/exn (parse-prop '(or)) "parse-prop: 'or' expects at least two operands")
 
 (test (parse-prop 'x) (p-id 'x))
 (test (parse-prop '(x where [x true])) (p-where (p-id 'x) 'x (tt)))
@@ -46,3 +50,19 @@
 (test (p-eval (ff)) (ffV))
 (test (p-eval (p-where (p-id 'x) 'x (p-and (list (tt) (p-or (list (tt) (ff))) (p-not (tt)))))) (ffV))
 (test (p-eval (p-or (list (ff) (p-where (p-id 'x) 'x (p-and (list (tt) (p-not (ff)))))))) (ttV))
+
+;;----- ;;
+;;  P2  ;;
+;;----- ;;
+
+;; P2.b
+(test (parse '1) (real 1))
+(test (parse '(2 i)) (imaginary 2))
+(test (parse '(+ 1 (2 i))) (add (real 1) (imaginary 2)))
+(test (parse '(with [(x 1) (y 1)] (- x y)))
+	(with (list (cons 'x (real 1)) (cons 'y (real 1))) (sub (id 'x) (id 'y)))
+)
+(test/exn (parse '(with [] 1)) "parse: 'with' expects at least one definition")
+
+;; P2.c
+

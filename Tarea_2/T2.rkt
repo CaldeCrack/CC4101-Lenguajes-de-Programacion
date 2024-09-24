@@ -32,12 +32,12 @@
 ;; P1.b ;;
 ;;----- ;;
 
-;; <s-prop> ::= true
-;; 			  | false
-;; 			  | (list 'p-not <s-expr>)
-;; 			  | (list 'p-and (list <s-expr>))
-;; 			  | (list 'p-or (list <s-expr>))
-;; 			  | (list 'p-where <s-expr> [<sym> <s-expr>])
+;; <s-prop> ::= 'true
+;; 			  | 'false
+;; 			  | (list 'not <s-expr>)
+;; 			  | (list 'and (list <s-expr>))
+;; 			  | (list 'or (list <s-expr>))
+;; 			  | (list 'where <s-expr> [<sym> <s-expr>])
 ;; 			  | <sym>
 ;; parse-prop : <s-prop> -> Prop
 ;; Parsea el lenguaje de proposiciones lógicas
@@ -49,19 +49,19 @@
 		[(list 'not elems ...)
 			(if (equal? (length elems) 1)
 				(p-not (parse-prop (car elems)))
-				(error "parse-prop: not expects only one operand")
+				(error "parse-prop: 'not' expects only one operand")
 			)
 		]
 		[(list 'and elems ...)
 			(if (> (length elems) 1)
 				(p-and (map parse-prop elems))
-				(error "parse-prop: and expects at least two operands")
+				(error "parse-prop: 'and' expects at least two operands")
 			)
 		]
 		[(list 'or elems ...)
 			(if (> (length elems) 1)
 				(p-or (map parse-prop elems))
-				(error "parse-prop: or expects at least two operands")
+				(error "parse-prop: 'or' expects at least two operands")
 			)
 		]
 		[(list x 'where [list y expr]) (p-where (parse-prop x) y (parse-prop expr))]
@@ -183,39 +183,55 @@
 ;; P2.a ;;
 ;;----- ;;
 
-
-#|
-<expr> ::= ...
-        | (add <expr> <expr>)
-        | (sub <expr> <expr>)
-        | (if0 <expr> <expr> <expr>)
-        | ...
-|#
+;; <expr> ::= (real)
+;; 			| (imaginary)
+;;          | (add <expr> <expr>)
+;;          | (sub <expr> <expr>)
+;;          | (if0 <expr> <expr> <expr>)
+;;          | (id <sym>)
+;;          | (with [(<sym> <expr>)*] <expr>)
+;; Constructor de números reales e imaginarios
 (deftype Expr
-  ; ...
-  (add l r)
-  (sub l r)
-  (if0 c t f)
-  ; ...
-  )
+	(real r)
+	(imaginary i)
+	(add l r)
+	(sub l r)
+	(if0 c t f)
+	(id x)
+	(with elems expr)
+)
 
 ;;----- ;;
 ;; P2.b ;;
 ;;----- ;;
 
-#|
-Concrete syntax of expressions:
-
-<s-expr> ::= ...
-        | (+ <s-expr> <s-expr>)
-        | (- <s-expr> <s-expr>)
-        | (if0 <s-expr> <s-expr> <s-expr>)
-        | ...
-|#
-
+;; <s-expr> ::= <number>
+;; 			  | (list <number> 'i)
+;; 			  | (list '+ <s-expr> <s-expr>)
+;; 			  | (list '- <s-expr> <s-expr>)
+;; 			  | (list 'if0 <s-expr> <s-expr> <s-expr>)
+;; 			  | (list 'with (list <s-expr>) body)
+;; 			  | <sym>
 ;; parse : <s-expr> -> Expr
-
-(define (parse s-expr) '???)
+;; Parsea el lenguaje de números complejos
+(define (parse s-expr)
+	(match s-expr
+		[(? number? n) (real n)]
+		[(list (? number? n) 'i) (imaginary n)]
+		[(? symbol? x) (id x)]
+		[(list '+ l-sexpr r-sexpr) (add (parse l-sexpr) (parse r-sexpr))]
+		[(list '- l-sexpr r-sexpr) (sub (parse l-sexpr) (parse r-sexpr))]
+		[(list 'if0 c-sexpr t-sexpr f-sexpr)
+			(if0 (parse c-sexpr) (parse t-sexpr) (parse f-sexpr))
+		]
+		[(list 'with elems body)
+			(if (> (length elems) 0)
+				(with (map (λ (e) (cons (car e) (parse (car (cdr e))))) elems) (parse body))
+				(error "parse: 'with' expects at least one definition")
+			)
+		]
+	)
+)
 
 ;;----- ;;
 ;; P2.c ;;
