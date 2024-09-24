@@ -101,9 +101,9 @@
 	(match target
 		[(tt) (tt)]
 		[(ff) (ff)]
-		[(p-not p) (p-not (p-subst p name substitution))]
-		[(p-and elems) (append '(p-and) (map (λ (elem) (p-subst elem name substitution)) elems))]
-		[(p-or elems) (append '(p-or) (map (λ (elem) (p-subst elem name substitution)) elems))]
+		[(p-not x) (p-not (p-subst x name substitution))]
+		[(p-and elems) (p-and (map (λ (elem) (p-subst elem name substitution)) elems))]
+		[(p-or elems) (p-or (map (λ (elem) (p-subst elem name substitution)) elems))]
 		[(p-id x)
 			(if (symbol=? x name)
 				substitution
@@ -129,16 +129,51 @@
 ;;----- ;;
 
 ;; eval-or : (Listof Prop) -> PValue
-;; 
-(define (eval-or ps) '???)
+;; Reduce recursivamente la operación o lógica
+(define (eval-or ps)
+	(match ps
+		['() (ffV)]
+		[(list x elems ...)
+			(if (ttV? (p-eval x))
+				(ttV)
+				(eval-or elems)
+			)
+		]
+	)
+)
 
 ;; eval-and : (Listof Prop) -> PValue
-;; 
-(define (eval-and ps) '???)
+;; Reduce recursivamente la operación y lógica
+(define (eval-and ps)
+	(match ps
+		['() (ttV)]
+		[(list x elems ...)
+			(if (ffV? (p-eval x))
+				(ffV)
+				(eval-and elems)
+			)
+		]
+	)
+)
 
 ;; p-eval : Prop -> PValue
-;; 
-(define (p-eval p) '???)
+;; Reduce una proposición a un valor del lenguaje
+(define (p-eval p)
+	(match p
+		[(? tt?) (ttV)]
+		[(? ff?) (ffV)]
+		[(p-not x)
+			(if (ttV? (p-eval x))
+				(ffV)
+				(ttV)
+			)
+		]
+		[(p-and elems) (eval-and elems)]
+		[(p-or elems) (eval-or elems)]
+		[(p-id x) (error "p-eval: open expression (free occurrence of ~a)" x)]
+		[(p-where where x expr) (p-eval (p-subst where x (from-Pvalue (p-eval expr))))]
+	)
+)
 
 ;;------------ ;;
 ;;==== P2 ==== ;;

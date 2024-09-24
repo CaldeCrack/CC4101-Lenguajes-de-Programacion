@@ -30,5 +30,19 @@
 (test (p-subst (p-where (p-id 'x) 'x (tt)) 'x (ff)) (p-where (p-id 'x) 'x (tt)))
 (test (p-subst (p-where (p-id 'x) 'y (tt)) 'x (ff)) (p-where (ff) 'y (tt)))
 (test (p-subst (p-where (p-id 'x) 'x (p-and (list (tt) (p-id 'x) (p-not (tt))))) 'x (p-or (list (tt) (ff))))
-	(p-where (p-id 'x) 'x (list 'p-and (tt) (p-or (list (tt) (ff))) (p-not (tt))))
+	(p-where (p-id 'x) 'x (p-and (list (tt) (p-or (list (tt) (ff))) (p-not (tt)))))
 )
+
+;; P1.e
+(test (eval-or (list (ff) (ff) (tt) (ff))) (ttV))
+(test (eval-or (list (ff) (p-or (list (ff) (ff))) (ff))) (ffV))
+(test (eval-or (list (tt) (ttV))) (ttV)) ;; No lanza error de match por ttV así que hace corto circuito
+
+(test (eval-and (list (tt) (tt) (ff) (tt))) (ffV))
+(test (eval-and (list (tt) (p-not (ff)))) (ttV))
+(test (eval-and (list (ff) (ffV))) (ffV)) ;; No lanza error de match por ffV así que hace corto circuito
+
+(test (p-eval (tt)) (ttV))
+(test (p-eval (ff)) (ffV))
+(test (p-eval (p-where (p-id 'x) 'x (p-and (list (tt) (p-or (list (tt) (ff))) (p-not (tt)))))) (ffV))
+(test (p-eval (p-or (list (ff) (p-where (p-id 'x) 'x (p-and (list (tt) (p-not (ff)))))))) (ttV))
