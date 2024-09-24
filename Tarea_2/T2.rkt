@@ -1,51 +1,71 @@
 #lang play
 
-#|
-
-Hizo Ud uso de la whiteboard policy: (Indique SI/NO)
-En caso que afirmativo, indique con quién y sobre qué ejercicio:
--
--
-
-|#
-
-;;------------ ;;
-;;==== P2 ==== ;;
-;;------------ ;;
-
+;; NOMBRE Y APELLIDO: Andrés Calderón
+;; RUT: 21.273.734-8
+;; Hizo Ud uso de la whiteboard policy: NO
 
 ;;----- ;;
 ;; P1.a ;;
 ;;----- ;;
 
-
-#|
-<prop> ::= (tt)
-         | (ff)
-         | ...
-|#
-
+;; <prop> ::= (tt)
+;; 			| (ff)
+;; 			| (p-not <prop>)
+;; 			| (p-and List<prop>)
+;; 			| (p-or List<prop>)
+;; 			| (p-id <sym>)
+;; 			| (p-where <expr> [<sym> <expr>])
+;; Constructor de proposiciones booleanas
 (deftype Prop
-  (tt)
-  (ff)
-  ; ...
-  )
+	(tt)
+	(ff)
+	(p-not p)
+	(p-and ps)
+	(p-or ps)
+	(p-id x)
+	(p-where where x expr)
+)
 
 
 ;;----- ;;
 ;; P1.b ;;
 ;;----- ;;
 
-#|
-Concrete syntax of propositions:
-
-<s-prop> ::= true
-          | false
-          | ...
-|#
-
+;; Concrete syntax of propositions:
+;; <s-prop> ::= true
+;; 			  | false
+;; 			  | (list 'p-not <s-expr>)
+;; 			  | (list 'p-and (list <s-expr>))
+;; 			  | (list 'p-or (list <s-expr>))
+;; 			  | (list 'p-where <s-expr> [<sym> <s-expr>])
+;; 			  | <sym>
 ;; parse-prop : <s-prop> -> Prop
-(define (parse-prop s-expr) '???)
+(define (parse-prop s-expr)
+	(match s-expr
+		['true (tt)]
+		['false (ff)]
+		[(? symbol? x) (p-id x)]
+		[(list 'not elems ...)
+			(if (equal? (length elems) 1)
+				(p-not (parse-prop (car elems)))
+				(error "parse-prop: not expects only one operand")
+			)
+		]
+		[(list 'and elems ...)
+			(if (> (length elems) 1)
+				(p-and (map parse-prop elems))
+				(error "parse-prop: and expects at least two operands")
+			)
+		]
+		[(list 'or elems ...)
+			(if (> (length elems) 1)
+				(p-or (map parse-prop elems))
+				(error "parse-prop: or expects at least two operands")
+			)
+		]
+		[(list x 'where [list y expr]) (p-where (parse-prop x) y (parse-prop expr))]
+	)
+)
 
 
 ;;----- ;;

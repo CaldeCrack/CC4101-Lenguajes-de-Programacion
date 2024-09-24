@@ -47,7 +47,6 @@
 		)
 	)
 )
-;; Se testea con la Parte e)
 
 ;; Parte e)
 ;; eval2 :: CFraction -> Rational
