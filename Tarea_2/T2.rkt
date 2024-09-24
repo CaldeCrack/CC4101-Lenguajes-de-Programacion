@@ -4,6 +4,7 @@
 ;; RUT: 21.273.734-8
 ;; Hizo Ud uso de la whiteboard policy: NO
 
+
 ;;----- ;;
 ;; P1.a ;;
 ;;----- ;;
@@ -14,7 +15,7 @@
 ;; 			| (p-and List<prop>)
 ;; 			| (p-or List<prop>)
 ;; 			| (p-id <sym>)
-;; 			| (p-where <expr> [<sym> <expr>])
+;; 			| (p-where <expr> <sym> <expr>)
 ;; Constructor de proposiciones booleanas
 (deftype Prop
 	(tt)
@@ -31,7 +32,6 @@
 ;; P1.b ;;
 ;;----- ;;
 
-;; Concrete syntax of propositions:
 ;; <s-prop> ::= true
 ;; 			  | false
 ;; 			  | (list 'p-not <s-expr>)
@@ -40,6 +40,7 @@
 ;; 			  | (list 'p-where <s-expr> [<sym> <s-expr>])
 ;; 			  | <sym>
 ;; parse-prop : <s-prop> -> Prop
+;; Parsea el lenguaje de proposiciones lógicas
 (define (parse-prop s-expr)
 	(match s-expr
 		['true (tt)]
@@ -72,38 +73,71 @@
 ;; P1.c ;;
 ;;----- ;;
 
-
-#|
-<value> ::= ...
-|#
-
-;; (deftype PValue ...)
+;; <value> ::= (ttV)
+;; 			 | (ffV)
+;; Constructor que captura la noción de valores del lenguaje
+(deftype PValue
+	(ttV)
+	(ffV)
+)
 
 ;; from-Pvalue : PValue -> Prop
-(define (from-Pvalue p-value) '???)
+;; Convierte un PValue en elemento Prop
+(define (from-Pvalue p-value)
+	(match p-value
+		[(? ttV?) (tt)]
+		[(? ffV?) (ff)]
+	)
+)
 
 
 ;;----- ;;
 ;; P1.d ;;
 ;;----- ;;
 
-
 ;; p-subst : Prop Symbol Prop -> Prop
-(define (p-subst target name substitution) '???)
+;; Realiza la substitución de una proposición por un identificador
+(define (p-subst target name substitution)
+	(match target
+		[(tt) (tt)]
+		[(ff) (ff)]
+		[(p-not p) (p-not (p-subst p name substitution))]
+		[(p-and elems) (append '(p-and) (map (λ (elem) (p-subst elem name substitution)) elems))]
+		[(p-or elems) (append '(p-or) (map (λ (elem) (p-subst elem name substitution)) elems))]
+		[(p-id x)
+			(if (symbol=? x name)
+				substitution
+				(p-id x)
+			)
+		]
+		[(p-where where x expr)
+			(p-where
+				(if (symbol=? x name)
+					where
+					(p-subst where name substitution)
+				)
+				x
+				(p-subst expr name substitution)
+			)
+		]
+	)
+)
 
 
 ;;----- ;;
 ;; P1.e ;;
 ;;----- ;;
 
-
 ;; eval-or : (Listof Prop) -> PValue
+;; 
 (define (eval-or ps) '???)
 
 ;; eval-and : (Listof Prop) -> PValue
+;; 
 (define (eval-and ps) '???)
 
 ;; p-eval : Prop -> PValue
+;; 
 (define (p-eval p) '???)
 
 ;;------------ ;;
