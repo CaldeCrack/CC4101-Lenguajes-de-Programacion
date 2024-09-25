@@ -201,6 +201,7 @@
 	(with elems expr)
 )
 
+
 ;;----- ;;
 ;; P2.b ;;
 ;;----- ;;
@@ -233,34 +234,93 @@
 	)
 )
 
+
 ;;----- ;;
 ;; P2.c ;;
 ;;----- ;;
 
-;; subst :: Expr Symbol Expr -> Expr
-(define (subst in what for) '???)
+;; <cvalue> ::= (compV <num> <num>)
+(deftype CValue (compV r i))
+
+;; from-CValue :: CValue -> Expr
+;; Convierte un CValue en un elemento Expr
+(define (from-CValue v)
+	(match v
+		[(compV r (? zero?)) (real r)]
+		[(compV (? zero?) i) (imaginary i)]
+		[(compV r i) (add (real r) (imaginary i))]
+	)
+)
+
+;; cmplx+ :: CValue CValue -> CValue
+;; Suma dos números complejos
+(define (cmplx+ v1 v2) (compV (+ (compV-r v1) (compV-r v2)) (+ (compV-i v1) (compV-i v2))))
+
+;; cmplx- :: CValue CValue -> CValue
+;; Resta dos números complejos
+(define (cmplx- v1 v2) (compV (- (compV-r v1) (compV-r v2)) (- (compV-i v1) (compV-i v2))))
+
+;; cmplx0? :: CValue -> Boolean
+;; Verifica si el número complejo es 0
+(define (cmplx0? v) (and (zero? (compV-r v)) (zero? (compV-i v))))
+
 
 ;;----- ;;
 ;; P2.d ;;
 ;;----- ;;
 
-#|
-<cvalue> ::= (compV <num> <num>)
-|#
+;; subst :: Expr Symbol Expr -> Expr
+;; Realiza la substitución de una expresión por un identificador
+(define (subst in what for)
+	;; Función auxiliar para realizar substitución sobre una lista de definiciones
+	(define (subst-list l what for)
+		(match l
+			['() '()]
+			[(list (cons (? (λ (v) (symbol=? v what)) for) _) rest ...) l]
+			[_ (append (list (cons (car (car l)) (subst (cdr (car l)) what for)))
+						(subst-list (cdr l) what for))
+			]
+		)
+	)
+	(define (defined-id l what)
+		(if (empty? l)
+			false
+			(if (symbol=? (car (car l)) what)
+				true
+				(defined-id (cdr l) what)
+			)
+		)
+	)
 
-(deftype CValue (compV r i))
-
-;; from-CValue :: CValue -> Expr
-(define (from-CValue v) '???)
-
-;; cmplx+ :: CValue CValue -> CValue
-(define (cmplx+ v1 v2) '???)
-
-;; cmplx- :: CValue CValue -> CValue
-(define (cmplx- v1 v2) '???)
-
-;; cmplx0? :: CValue -> Boolean
-(define (cmplx0? v) '???)
+	(match in
+		[(real r) (real r)]
+		[(imaginary i) (imaginary i)]
+		[(add l r) (add (subst l what for) (subst r what for))]
+		[(sub l r) (sub (subst l what for) (subst r what for))]
+		[(if0 c t f)
+			(if0 (subst c what for)
+				(subst t what for)
+				(subst f what for)
+			)
+		]
+		[(id x)
+			(if (symbol=? x what)
+				for
+				(id x)
+			)
+		]
+		[(with elems expr)
+			(define new-elems (subst-list elems what for))
+			(with
+				new-elems
+				(if (defined-id new-elems what)
+					expr
+					(subst expr what for)
+				)
+			)
+		]
+	)
+)
 
 
 ;;----- ;;
