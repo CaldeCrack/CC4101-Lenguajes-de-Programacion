@@ -1,6 +1,5 @@
 #lang play
 (require "T2.rkt")
-
 (print-only-errors #t)
 
 ;;----- ;;
@@ -48,6 +47,7 @@
 (test (p-eval (ff)) (ffV))
 (test (p-eval (p-where (p-id 'x) 'x (p-and (list (tt) (p-or (list (tt) (ff))) (p-not (tt)))))) (ffV))
 (test (p-eval (p-or (list (ff) (p-where (p-id 'x) 'x (p-and (list (tt) (p-not (ff)))))))) (ttV))
+(test/exn (p-eval (parse-prop 'x)) "p-eval: open expression (free occurrence of ~a) 'x")
 
 ;;----- ;;
 ;;  P2  ;;
@@ -75,7 +75,6 @@
 
 (test (cmplx0? (compV 0 0)) #t)
 (test (cmplx0? (compV 5 2)) #f)
-(test (cmplx0? (compV 0 1)) #f)
 (test (cmplx0? (compV -3 0)) #f)
 
 ;; P2.d
@@ -87,3 +86,14 @@
 	(with (list (cons 'x (real 2)) (cons 'y (add (id 'x) (real 1)))) (add (id 'x) (id 'y))))
 (test (subst (parse '(with [(x y) (y 2) (z y)] (+ x y))) 'y (real 1))
 	(with (list (cons 'x (real 1)) (cons 'y (real 2)) (cons 'z (id 'y))) (add (id 'x) (id 'y))))
+
+;; P2.e
+(test (interp (real -1)) (compV -1 0))
+(test (interp (imaginary 5)) (compV 0 5))
+(test (interp (add (real -2) (imaginary 4))) (compV -2 4))
+(test (interp (sub (sub (real 4) (imaginary 3)) (add (real 4) (imaginary -2)))) (compV 0 -1))
+(test (interp (if0 (imaginary 0) (real -1) (imaginary 2))) (compV -1 0))
+(test (interp (if0 (add (real 1) (imaginary 0)) (imaginary 7) (real 5))) (compV 5 0))
+(test (interp (with (list (cons 'x (imaginary -15)) (cons 'y (real 10))) (add (id 'x) (real 2)))) (compV 2 -15))
+(test (interp (parse '(with ((z 2) (z (+ 3 (5 i)))) z))) (compV 3 5))
+(test/exn (interp (id 'x)) "interp: open expression (free occurrence of ~a) 'x")

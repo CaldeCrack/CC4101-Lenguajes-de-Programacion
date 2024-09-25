@@ -282,12 +282,13 @@
 			]
 		)
 	)
-	(define (defined-id l what)
+	;; Función auxiliar para determinar si hay 'shadowing'
+	(define (shadowing l what)
 		(if (empty? l)
 			false
 			(if (symbol=? (car (car l)) what)
 				true
-				(defined-id (cdr l) what)
+				(shadowing (cdr l) what)
 			)
 		)
 	)
@@ -313,7 +314,7 @@
 			(define new-elems (subst-list elems what for))
 			(with
 				new-elems
-				(if (defined-id new-elems what)
+				(if (shadowing new-elems what)
 					expr
 					(subst expr what for)
 				)
@@ -328,4 +329,28 @@
 ;;----- ;;
 
 ;; interp : Expr -> CValue
-(define (interp expr) '???)
+;; Reduce una expresión en un valor del lenguaje
+(define (interp expr)
+	;; Función auxiliar para realizar la substitución en la interpretación del with
+	(define (interp-subst elems expr)
+		(match elems
+			['() expr]
+			[_ (interp-subst (cdr elems) (subst expr (car (car elems)) (cdr (car elems))))]
+		)
+	)
+
+	(match expr
+		[(real r) (compV r 0)]
+		[(imaginary i) (compV 0 i)]
+		[(add l-expr r-expr) (cmplx+ (interp l-expr) (interp r-expr))]
+		[(sub l-expr r-expr) (cmplx- (interp l-expr) (interp r-expr))]
+		[(if0 c-expr t-expr f-expr) (if (cmplx0? (interp c-expr))
+												(interp t-expr)
+												(interp f-expr))]
+		[(id x) (error "interp: open expression (free occurrence of ~a)" x)]
+		[(with elems expr)
+			(define reversed (reverse elems))
+			(interp (interp-subst reversed expr))
+		]
+	)
+)
