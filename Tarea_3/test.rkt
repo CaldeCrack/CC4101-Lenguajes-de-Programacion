@@ -62,3 +62,34 @@
 (test/exn (interp (app (num 4) (nil)) empty-env) "MatchError: expected a number")
 (test/exn (interp (app (nil) (num 2)) empty-env) "MatchError: expected nil")
 (test/exn (interp (app func (num 3)) empty-env) "MatchError: expected a cons constructor")
+
+
+;; P2.b
+(test (parse '(match (nil) [(nil) (nil)])) (pmatch (nil) (list (cons (nilP) (nil)))))
+(test (parse '(match 2 [1 1] [x 3])) (pmatch (num 2) (list (cons (numP 1) (num 1)) (cons (varP 'x) (num 3)))))
+(test (parse '(match (nil) [(nil) 1] [y (cons 0 1)]))
+	(pmatch (nil) (list (cons (nilP) (num 1)) (cons (varP 'y) (conz (num 0) (num 1))))))
+(test/exn (parse '(match 1)) "SyntaxError: match expression must have at least one case")
+(test/exn (parse '(match (nil))) "SyntaxError: match expression must have at least one case")
+
+;; P2.c
+(test (interp (pmatch (num 2)  (list (cons (numP 2) (num 1)) (cons (varP 'x) (id 'x)))) empty-env)  (numV 1))
+(test (interp (pmatch (nil) (list (cons (numP 2) (nil)) (cons (nilP) (num 3)))) empty-env) (numV 3))
+(test (interp (pmatch (conz (num 1) (num -1)) 
+		(list (cons (conzP (varP 'x) (varP 'z)) (add (id 'z) (id 'x))))) empty-env) 
+	(numV 0))
+(test (interp (pmatch (num 12)
+		(list (cons (varP 'x) (id 'x))
+			(cons (numP 12) (app (fun (varP 'x) (add (id 'x) (num 1))) (num 3))))) empty-env)
+	(numV 12))
+(test (interp (pmatch (num 12)
+		(list (cons (numP 12) (app (fun (varP 'x) (add (id 'x) (num 1))) (num 0)))
+			(cons (varP 'x) (id 'x)))) empty-env)
+	(numV 1))
+
+(test/exn (interp (pmatch (conz (num 2) (nil))
+		(list (cons (conzP (numP -2) (nilP)) (num 1)) (cons (nilP) (num 2)) (cons (nilP) (nilP)))) empty-env)
+	"MatchError: expression does not match any pattern")
+(test/exn (interp (pmatch (conz (num 2) (num 2))
+		(list (cons (numP 2) (num 2)) (cons (conzP (numP 2) (nilP)) (num 0)) (cons (nilP) (nil)))) empty-env)
+	"MatchError: expression does not match any pattern")

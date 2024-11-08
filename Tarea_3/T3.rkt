@@ -16,6 +16,7 @@
 ;; 			| (fun <pattern> <expr>)
 ;; 			| (app <expr> <expr>)
 ;; 			| (id <sym>)
+;; 			| (pmatch <expr> List<<pattern> <expr>>)
 ;; Constructor de expresiones del lenguaje
 (deftype Expr
 	(num n)
@@ -25,6 +26,7 @@
 	(fun p e)
 	(app f x)
 	(id x)
+	(pmatch p cases)
 )
 
 
@@ -40,6 +42,7 @@
 ;; 				| (list 'list (list <s-expr>))
 ;; 				| (list 'fun <pattern> <s-expr>)
 ;; 				| (list <s-expr> <s-expr>)
+;; 				| (list 'match <s-expr> (list <<pattern> <s-expr>>))
 ;; parse : <s-expr> -> <Expr>
 ;; Parsea el lenguaje funcional
 (define (parse s-expr)
@@ -51,6 +54,10 @@
 		[(list 'cons l r) (conz (parse l) (parse r))]
 		[(list 'list elems ...) (foldr (λ (elem lista) (conz (parse elem) lista)) (nil) elems)]
 		[(list 'fun p e) (fun (parse-pattern p) (parse e))]
+		[(list 'match p cases ...) (if (empty? cases)
+			(error "SyntaxError: match expression must have at least one case")
+			(pmatch (parse p) (map (λ (e) (cons (parse-pattern (car e)) (parse (car (cdr e))))) cases))
+		)]
 		[(list f x) (app (parse f) (parse x))]
 	)
 )
@@ -221,6 +228,16 @@ END utility definitions
 		[(conz l r) (conzV (interp l env) (interp r env))]
 		[(fun id body) (closureV id body env)]
 		[(id x) (lookup-env x env)]
+		[(pmatch p cases)
+			(define substs (generate-substs (car (car cases)) (interp p env)))
+			(match substs
+				[(success s) (interp (cdr (car cases)) (extend-env* s env))]
+				[(failure _) (if (empty? (cdr cases))
+					(error "MatchError: expression does not match any pattern")
+					(interp (pmatch p (cdr cases)) env)
+				)]
+			)
+		]
 		[(app f e)
 			(define substs (generate-substs (match f
 				[(num n) (parse-pattern n)]
@@ -251,6 +268,9 @@ En función de lo implementado en la pregunta anterior, argumente porqué es út
 generate-substs no lance un error (cuando el valor no calza con el patrón) y, en cambio, retorne
 un mensaje.
 
-R: ...
+R:
+En este caso, es útil puesto que no detiene la ejecución del código y permite verificar todos los
+patrones que se quieran dentro del match, además de que puede servir para obtener una
+contextualización de porque para cierto caso no se pudo realizar el match.
 
 |#
